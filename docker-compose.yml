@@ -1,0 +1,42 @@
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      - mongo
+    environment:
+      PORT: 5000
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/crypto-radar}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      SCAN_INTERVAL_MINUTES: ${SCAN_INTERVAL_MINUTES:-5}
+      MIN_ALERT_SCORE: ${MIN_ALERT_SCORE:-70}
+      MIN_LIQUIDITY_USD: ${MIN_LIQUIDITY_USD:-50000}
+      MIN_VOLUME_24H_USD: ${MIN_VOLUME_24H_USD:-100000}
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      args:
+        VITE_API_BASE_URL: /api
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+volumes:
+  mongo_data:

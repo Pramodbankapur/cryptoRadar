@@ -1,0 +1,21 @@
+{
+  "name": "crypto-radar",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c cyan,green \"npm run dev --workspace backend\" \"npm run dev --workspace frontend\"",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace backend && npm run build --workspace frontend",
+    "start": "npm run start --workspace backend",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down -v"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
