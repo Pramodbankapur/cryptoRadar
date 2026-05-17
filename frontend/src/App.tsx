@@ -19,8 +19,10 @@ import type {
 import { formatCompactNumber, formatDateTime } from "./utils/format";
 
 const REFRESH_INTERVAL_MS = 60_000;
-const TOKEN_PAGE_SIZE = 20;
-const ALERT_PAGE_SIZE = 6;
+const DESKTOP_TOKEN_PAGE_SIZE = 20;
+const MOBILE_TOKEN_PAGE_SIZE = 8;
+const DESKTOP_ALERT_PAGE_SIZE = 6;
+const MOBILE_ALERT_PAGE_SIZE = 4;
 
 const DEFAULT_FILTERS: FilterValues = {
   boostedOnly: false,
@@ -43,9 +45,15 @@ const toNumberOrUndefined = (value: string) => {
 };
 
 export default function App() {
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 760px)").matches : false
+  );
   const [filters, setFilters] = useState<FilterValues>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
   const [alertPage, setAlertPage] = useState(1);
+  const [mobilePanel, setMobilePanel] = useState<"alerts" | "discovery" | "trend" | "watchlist">(
+    "discovery"
+  );
   const [tokensResponse, setTokensResponse] = useState<TokenListResponse | null>(null);
   const [alertsResponse, setAlertsResponse] = useState<PaginatedResponse<{
     _id: string;
@@ -91,6 +99,33 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 760px)");
+    const syncViewport = () => {
+      setIsMobileViewport(mediaQuery.matches);
+    };
+
+    syncViewport();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncViewport);
+
+      return () => {
+        mediaQuery.removeEventListener("change", syncViewport);
+      };
+    }
+
+    mediaQuery.addListener(syncViewport);
+
+    return () => {
+      mediaQuery.removeListener(syncViewport);
+    };
+  }, []);
+
+  useEffect(() => {
     const intervalId = window.setInterval(() => {
       triggerRefresh();
     }, REFRESH_INTERVAL_MS);
@@ -102,6 +137,7 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
+    const tokenPageSize = isMobileViewport ? MOBILE_TOKEN_PAGE_SIZE : DESKTOP_TOKEN_PAGE_SIZE;
 
     const loadTokens = async () => {
       setLoadingTokens(true);
@@ -112,7 +148,7 @@ export default function App() {
           chainId: filters.selectedChain,
           favoritesOnly: filters.favoritesOnly,
           highScoreOnly: filters.highScoreOnly,
-          limit: TOKEN_PAGE_SIZE,
+          limit: tokenPageSize,
           maxPairAgeHours: toNumberOrUndefined(filters.maxPairAgeHours),
           minLiquidityUsd: toNumberOrUndefined(filters.minLiquidityUsd),
           minScore: toNumberOrUndefined(filters.minScore),
@@ -162,16 +198,18 @@ export default function App() {
     filters.selectedChain,
     filters.sortBy,
     filters.sortOrder,
+    isMobileViewport,
     page,
     refreshTick
   ]);
 
   useEffect(() => {
     let cancelled = false;
+    const alertPageSize = isMobileViewport ? MOBILE_ALERT_PAGE_SIZE : DESKTOP_ALERT_PAGE_SIZE;
 
     const loadAlerts = async () => {
       try {
-        const data = await apiClient.getAlerts(alertPage, ALERT_PAGE_SIZE);
+        const data = await apiClient.getAlerts(alertPage, alertPageSize);
 
         if (!cancelled) {
           setAlertsResponse(data);
@@ -188,7 +226,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [alertPage, refreshTick]);
+  }, [alertPage, isMobileViewport, refreshTick]);
 
   useEffect(() => {
     let cancelled = false;
@@ -227,6 +265,12 @@ export default function App() {
     let cancelled = false;
 
     const loadHistory = async () => {
+      if (isMobileViewport && mobilePanel !== "trend") {
+        setHistoryResponse(null);
+        setHistoryLoading(false);
+        return;
+      }
+
       if (!selectedTokenRef) {
         setHistoryResponse(null);
         return;
@@ -260,7 +304,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [refreshTick, selectedTokenRef]);
+  }, [isMobileViewport, mobilePanel, refreshTick, selectedTokenRef]);
 
   const selectedToken = useMemo(() => {
     if (!selectedTokenRef) {
@@ -302,6 +346,10 @@ export default function App() {
       chainId: token.chainId,
       tokenAddress: token.tokenAddress
     });
+
+    if (isMobileViewport) {
+      setMobilePanel("trend");
+    }
   };
 
   const handleToggleFavorite = async (token: TokenRecord) => {
@@ -368,6 +416,11 @@ export default function App() {
   const selectedTokenKey = selectedToken
     ? `${selectedToken.chainId}:${selectedToken.tokenAddress}`
     : null;
+  const showDesktopDiscovery = !isMobileViewport;
+  const showMobileDiscovery = isMobileViewport && mobilePanel === "discovery";
+  const showTrendPanel = !isMobileViewport || mobilePanel === "trend";
+  const showWatchlistPanel = !isMobileViewport || mobilePanel === "watchlist";
+  const showAlertsPanel = !isMobileViewport || mobilePanel === "alerts";
 
   return (
     <div className="app-shell">
@@ -422,9 +475,32 @@ export default function App() {
           </article>
         </section>
 
+        {isMobileViewport ? (
+          <section className="panel mobile-panel-switcher">
+            <div className="segmented-control mobile-segmented-control">
+              {([
+                ["discovery", "Discovery"],
+                ["trend", "Trend"],
+                ["watchlist", "Watchlist"],
+                ["alerts", "Alerts"]
+              ] as const).map(([panelKey, label]) => (
+                <button
+                  className={`segment-button ${mobilePanel === panelKey ? "segment-button--active" : ""}`}
+                  key={panelKey}
+                  onClick={() => setMobilePanel(panelKey)}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         <section className="content-grid">
           <div className="content-grid__main">
-            <section className="panel">
+            {showDesktopDiscovery || showMobileDiscovery ? (
+              <section className="panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Scanner output</p>
@@ -463,13 +539,15 @@ export default function App() {
                 </div>
               ) : (
                 <>
-                  <TokenTable
-                    onSelectToken={handleSelectToken}
-                    onToggleFavorite={handleToggleFavorite}
-                    pendingFavoriteKey={favoriteBusyKey}
-                    selectedTokenKey={selectedTokenKey}
-                    tokens={tokenItems}
-                  />
+                  {showDesktopDiscovery ? (
+                    <TokenTable
+                      onSelectToken={handleSelectToken}
+                      onToggleFavorite={handleToggleFavorite}
+                      pendingFavoriteKey={favoriteBusyKey}
+                      selectedTokenKey={selectedTokenKey}
+                      tokens={tokenItems}
+                    />
+                  ) : null}
                   <div className="card-stack">
                     {tokenItems.map((token) => (
                       <TokenCard
@@ -494,40 +572,47 @@ export default function App() {
                   />
                 </>
               )}
-            </section>
+              </section>
+            ) : null}
           </div>
 
           <div className="content-grid__side">
-            <HistoryChart
-              history={historyItems}
-              loading={historyLoading}
-              metric={historyMetric}
-              onMetricChange={setHistoryMetric}
-              token={selectedToken}
-              trendSummary={trendSummary}
-            />
+            {showTrendPanel ? (
+              <HistoryChart
+                history={historyItems}
+                loading={historyLoading}
+                metric={historyMetric}
+                onMetricChange={setHistoryMetric}
+                token={selectedToken}
+                trendSummary={trendSummary}
+              />
+            ) : null}
 
-            <WatchlistPanel
-              entries={watchlistEntries}
-              onRemove={handleRemoveWatchlist}
-              onSave={handleSaveWatchlist}
-              onSelect={handleSelectToken}
-              savingId={watchlistSavingId}
-              selectedTokenKey={selectedTokenKey}
-            />
+            {showWatchlistPanel ? (
+              <WatchlistPanel
+                entries={watchlistEntries}
+                onRemove={handleRemoveWatchlist}
+                onSave={handleSaveWatchlist}
+                onSelect={handleSelectToken}
+                savingId={watchlistSavingId}
+                selectedTokenKey={selectedTokenKey}
+              />
+            ) : null}
           </div>
         </section>
 
-        <AlertList
-          alerts={alertItems}
-          onPageChange={(nextPage) => {
-            startTransition(() => {
-              setAlertPage(nextPage);
-            });
-          }}
-          page={alertPagination?.page ?? 1}
-          totalPages={alertPagination?.totalPages ?? 1}
-        />
+        {showAlertsPanel ? (
+          <AlertList
+            alerts={alertItems}
+            onPageChange={(nextPage) => {
+              startTransition(() => {
+                setAlertPage(nextPage);
+              });
+            }}
+            page={alertPagination?.page ?? 1}
+            totalPages={alertPagination?.totalPages ?? 1}
+          />
+        ) : null}
       </main>
     </div>
   );
