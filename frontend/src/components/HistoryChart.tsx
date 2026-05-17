@@ -64,16 +64,18 @@ const MOMENTUM_META: Record<
 };
 
 const buildCoordinates = (values: number[]) => {
-  if (values.length === 0) {
+  const safeValues = values.filter((value) => Number.isFinite(value));
+
+  if (safeValues.length === 0) {
     return [];
   }
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const min = Math.min(...safeValues);
+  const max = Math.max(...safeValues);
   const range = max - min || 1;
 
-  return values.map((value, index) => {
-    const x = (index / Math.max(values.length - 1, 1)) * 100;
+  return safeValues.map((value, index) => {
+    const x = (index / Math.max(safeValues.length - 1, 1)) * 100;
     const y = 100 - ((value - min) / range) * 100;
 
     return { x, y };
@@ -124,7 +126,9 @@ export function HistoryChart({
   token,
   trendSummary
 }: HistoryChartProps) {
-  const values = history.map((point) => point[metric]);
+  const values = history
+    .map((point) => point[metric])
+    .filter((value): value is number => Number.isFinite(value));
   const meta = METRIC_META[metric];
   const latestPoint = history.length > 0 ? history[history.length - 1] : null;
   const latestValue = values.length > 0 ? values[values.length - 1] : 0;
@@ -214,25 +218,6 @@ export function HistoryChart({
               preserveAspectRatio="none"
               viewBox="0 0 100 100"
             >
-              <defs>
-                <linearGradient
-                  id="historyAreaGradient"
-                  x1="0"
-                  x2="0"
-                  y1="0"
-                  y2="1"
-                >
-                  <stop
-                    offset="0%"
-                    stopColor="rgba(255, 214, 110, 0.42)"
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="rgba(255, 214, 110, 0.04)"
-                  />
-                </linearGradient>
-              </defs>
-
               {[20, 40, 60, 80].map((line) => (
                 <line
                   className="history-chart__grid"
