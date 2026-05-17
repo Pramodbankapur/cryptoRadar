@@ -9,7 +9,10 @@ import { tokensRouter } from "./routes/tokens.routes.js";
 import { watchlistRouter } from "./routes/watchlist.routes.js";
 import { logger } from "./utils/logger.js";
 
+const MONGO_RETRY_DELAY_MS = 10000;
+
 const app = express();
+let scannerStarted = false;
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
@@ -26,6 +29,7 @@ app.use((req, res, next) => {
 
 app.get("/api/health", (_req, res) => {
   res.json({
+    mongoConnected: mongoose.connection.readyState === 1,
     mongoState: getMongoStateLabel(mongoose.connection.readyState),
     scanIntervalMinutes: env.SCAN_INTERVAL_MINUTES,
     status: "ok",
@@ -46,16 +50,29 @@ app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 const bootstrap = async () => {
-  await mongoose.connect(env.MONGO_URI);
-  logger.info("Connected to MongoDB.");
-
-  startTokenScanner();
-
   app.listen(env.PORT, () => {
     logger.info(`Crypto Radar backend listening on port ${env.PORT}.`);
   });
 
-  void runTokenScan("startup");
+  mongoose.connection.on("connected", () => {
+    logger.info("Connected to MongoDB.");
+
+    if (!scannerStarted) {
+      startTokenScanner();
+      scannerStarted = true;
+      void runTokenScan("startup");
+    }
+  });
+
+  mongoose.connection.on("disconnected", () => {
+    logger.warn("MongoDB disconnected.");
+  });
+
+  mongoose.connection.on("error", (error) => {
+    logger.error("MongoDB connection error.", error);
+  });
+
+  void connectToMongoWithRetry();
 };
 
 const shutdown = async (signal: string) => {
@@ -77,6 +94,20 @@ bootstrap().catch((error) => {
   process.exit(1);
 });
 
+async function connectToMongoWithRetry() {
+  while (mongoose.connection.readyState !== 1) {
+    try {
+      await mongoose.connect(env.MONGO_URI, {
+        serverSelectionTimeoutMS: 15000
+      });
+      return;
+    } catch (error) {
+      logger.error("Initial MongoDB connection failed. Retrying shortly.", error);
+      await sleep(MONGO_RETRY_DELAY_MS);
+    }
+  }
+}
+
 function getMongoStateLabel(state: number) {
   switch (state) {
     case 0:
@@ -90,4 +121,10 @@ function getMongoStateLabel(state: number) {
     default:
       return "unknown";
   }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
