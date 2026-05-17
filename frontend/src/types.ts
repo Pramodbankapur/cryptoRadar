@@ -98,6 +98,29 @@ export interface TokenHistoryPoint {
   volume6h: number;
 }
 
+export interface TokenHistoryWindow {
+  actualLookbackMinutes: number;
+  available: boolean;
+  label: string;
+  priceChangePercent: number | null;
+  priceChangeUsd: number | null;
+  scoreChange: number | null;
+  volume1hChangePercent: number | null;
+  volume24hChangePercent: number | null;
+  windowMinutes: number;
+}
+
+export interface TokenTrendSummary {
+  generatedAt: string;
+  momentumLabel: "STILL_MOVING" | "COOLING" | "REVERSING" | "MIXED" | "NO_DATA";
+  windows: TokenHistoryWindow[];
+}
+
+export interface TokenHistoryResponse {
+  items: TokenHistoryPoint[];
+  trendSummary: TokenTrendSummary;
+}
+
 export interface WatchlistEntry {
   _id: string;
   chainId: string;

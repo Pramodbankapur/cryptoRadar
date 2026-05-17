@@ -32,6 +32,44 @@ const RISK_FLAG_OPTIONS = [
 export function Filters({ chains, onChange, onReset, values }: FiltersProps) {
   return (
     <div className="filters-panel">
+      <div className="filters-header">
+        <div>
+          <p className="eyebrow">Server-side filters</p>
+          <h3>Shape the queue before it reaches the browser.</h3>
+        </div>
+        <div className="preset-bar">
+          <button
+            className="ghost-button"
+            onClick={() => {
+              onChange("highScoreOnly", true);
+              onChange("minScore", "70");
+              onChange("minLiquidityUsd", "50000");
+              onChange("minVolume24h", "100000");
+            }}
+            type="button"
+          >
+            Quality setup
+          </button>
+          <button
+            className="ghost-button"
+            onClick={() => {
+              onChange("maxPairAgeHours", "24");
+              onChange("sortBy", "lastScannedAt");
+            }}
+            type="button"
+          >
+            Fresh 24h
+          </button>
+          <button
+            className="ghost-button"
+            onClick={() => onChange("boostedOnly", !values.boostedOnly)}
+            type="button"
+          >
+            {values.boostedOnly ? "Show all" : "Boosted only"}
+          </button>
+        </div>
+      </div>
+
       <div className="filters-grid">
         <label className="field field--wide">
           <span className="field-label">Search</span>

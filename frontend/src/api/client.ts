@@ -1,6 +1,7 @@
 import type {
   AlertRecord,
   PaginatedResponse,
+  TokenHistoryResponse,
   TokenHistoryPoint,
   TokenListResponse,
   TokenQueryParams,
@@ -63,7 +64,7 @@ export const apiClient = {
       })}`
     ),
   getTokenHistory: (chainId: string, tokenAddress: string, limit = 24) =>
-    request<TokenHistoryPoint[]>(
+    request<TokenHistoryResponse>(
       `/tokens/${encodeURIComponent(chainId)}/${encodeURIComponent(tokenAddress)}/history${createQueryString(
         {
           limit

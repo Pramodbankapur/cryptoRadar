@@ -10,7 +10,7 @@ import { TokenTable } from "./components/TokenTable";
 import { WatchlistPanel } from "./components/WatchlistPanel";
 import type {
   PaginatedResponse,
-  TokenHistoryPoint,
+  TokenHistoryResponse,
   TokenListResponse,
   TokenQueryParams,
   TokenRecord,
@@ -71,7 +71,7 @@ export default function App() {
     chainId: string;
     tokenAddress: string;
   } | null>(null);
-  const [history, setHistory] = useState<TokenHistoryPoint[]>([]);
+  const [historyResponse, setHistoryResponse] = useState<TokenHistoryResponse | null>(null);
   const [historyMetric, setHistoryMetric] = useState<"priceUsd" | "score" | "volume24h">("score");
   const [loadingTokens, setLoadingTokens] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -228,7 +228,7 @@ export default function App() {
 
     const loadHistory = async () => {
       if (!selectedTokenRef) {
-        setHistory([]);
+        setHistoryResponse(null);
         return;
       }
 
@@ -238,11 +238,11 @@ export default function App() {
         const data = await apiClient.getTokenHistory(
           selectedTokenRef.chainId,
           selectedTokenRef.tokenAddress,
-          24
+          288
         );
 
         if (!cancelled) {
-          setHistory(data);
+          setHistoryResponse(data);
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -363,6 +363,8 @@ export default function App() {
   const tokenPagination = tokensResponse?.pagination;
   const alertItems = alertsResponse?.items ?? [];
   const alertPagination = alertsResponse?.pagination;
+  const historyItems = historyResponse?.items ?? [];
+  const trendSummary = historyResponse?.trendSummary ?? null;
   const selectedTokenKey = selectedToken
     ? `${selectedToken.chainId}:${selectedToken.tokenAddress}`
     : null;
@@ -497,11 +499,12 @@ export default function App() {
 
           <div className="content-grid__side">
             <HistoryChart
-              history={history}
+              history={historyItems}
               loading={historyLoading}
               metric={historyMetric}
               onMetricChange={setHistoryMetric}
               token={selectedToken}
+              trendSummary={trendSummary}
             />
 
             <WatchlistPanel

@@ -233,6 +233,27 @@ a {
   padding: 18px;
 }
 
+.filters-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.filters-header h3 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.preset-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .filters-grid {
   display: grid;
   gap: 14px;
@@ -577,10 +598,22 @@ a {
   width: 100%;
 }
 
+.history-chart__grid {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-dasharray: 1.5 2;
+  stroke-width: 0.5;
+}
+
+.history-chart__area {
+  fill: url(#historyAreaGradient);
+}
+
 .history-chart__line {
   stroke: #ffd66e;
   stroke-linecap: round;
   stroke-linejoin: round;
+  fill: none;
+  stroke-width: 2.5;
 }
 
 .history-stats {
@@ -594,6 +627,98 @@ a {
   display: block;
   font-family: "Space Grotesk", sans-serif;
   font-size: 1.25rem;
+}
+
+.momentum-banner {
+  align-items: center;
+  border-radius: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+}
+
+.momentum-banner strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+}
+
+.momentum-banner--positive {
+  background: rgba(111, 228, 167, 0.1);
+  border: 1px solid rgba(111, 228, 167, 0.16);
+}
+
+.momentum-banner--cooling {
+  background: rgba(130, 198, 255, 0.1);
+  border: 1px solid rgba(130, 198, 255, 0.16);
+}
+
+.momentum-banner--warning {
+  background: rgba(255, 143, 115, 0.08);
+  border: 1px solid rgba(255, 143, 115, 0.16);
+}
+
+.momentum-banner--flat {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.trend-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.trend-card {
+  background: rgba(8, 15, 24, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.trend-card strong {
+  display: block;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.2rem;
+  margin: 6px 0 10px;
+}
+
+.trend-card__top,
+.trend-card__meta {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.trend-card__meta {
+  color: var(--copy-muted);
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 0.88rem;
+  gap: 4px;
+}
+
+.trend-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+}
+
+.trend-pill--up {
+  background: rgba(111, 228, 167, 0.1);
+  border-color: rgba(111, 228, 167, 0.18);
+  color: var(--positive);
+}
+
+.trend-pill--down {
+  background: rgba(255, 143, 115, 0.1);
+  border-color: rgba(255, 143, 115, 0.18);
+  color: #ffb39d;
 }
 
 .watchlist-list {
@@ -644,6 +769,11 @@ a {
     align-items: flex-start;
   }
 
+  .filters-header,
+  .momentum-banner {
+    flex-direction: column;
+  }
+
   .stats-grid,
   .filters-grid {
     grid-template-columns: 1fr 1fr;
@@ -667,7 +797,8 @@ a {
   .stats-grid,
   .filters-grid,
   .content-grid,
-  .history-stats {
+  .history-stats,
+  .trend-grid {
     grid-template-columns: 1fr;
   }
 

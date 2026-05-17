@@ -1,5 +1,5 @@
-import type { TokenHistoryPoint, TokenRecord } from "../types";
-import { formatCurrency, formatDateTime, formatPrice } from "../utils/format";
+import type { TokenHistoryPoint, TokenTrendSummary, TokenRecord } from "../types";
+import { formatCurrency, formatDateTime, formatPercent, formatPrice } from "../utils/format";
 import { ScoreBadge } from "./ScoreBadge";
 
 type HistoryMetric = "priceUsd" | "score" | "volume24h";
@@ -10,6 +10,7 @@ interface HistoryChartProps {
   metric: HistoryMetric;
   onMetricChange: (metric: HistoryMetric) => void;
   token: TokenRecord | null;
+  trendSummary: TokenTrendSummary | null;
 }
 
 const METRIC_META: Record<
@@ -33,30 +34,95 @@ const METRIC_META: Record<
   }
 };
 
-const buildPolyline = (values: number[]) => {
+const MOMENTUM_META: Record<
+  TokenTrendSummary["momentumLabel"],
+  {
+    copy: string;
+    tone: "cooling" | "flat" | "positive" | "warning";
+  }
+> = {
+  COOLING: {
+    copy: "Cooling after a stronger earlier move.",
+    tone: "cooling"
+  },
+  MIXED: {
+    copy: "Mixed momentum across recent windows.",
+    tone: "flat"
+  },
+  NO_DATA: {
+    copy: "Not enough history yet.",
+    tone: "flat"
+  },
+  REVERSING: {
+    copy: "Recent windows are rolling over.",
+    tone: "warning"
+  },
+  STILL_MOVING: {
+    copy: "Short and medium windows are still positive.",
+    tone: "positive"
+  }
+};
+
+const buildCoordinates = (values: number[]) => {
   if (values.length === 0) {
-    return "";
+    return [];
   }
 
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
 
-  return values
-    .map((value, index) => {
-      const x = (index / Math.max(values.length - 1, 1)) * 100;
-      const y = 100 - ((value - min) / range) * 100;
-      return `${x},${y}`;
-    })
+  return values.map((value, index) => {
+    const x = (index / Math.max(values.length - 1, 1)) * 100;
+    const y = 100 - ((value - min) / range) * 100;
+
+    return { x, y };
+  });
+};
+
+const buildLinePath = (values: number[]) => {
+  const coordinates = buildCoordinates(values);
+
+  if (coordinates.length === 0) {
+    return "";
+  }
+
+  return coordinates
+    .map((coordinate, index) =>
+      `${index === 0 ? "M" : "L"} ${coordinate.x.toFixed(2)} ${coordinate.y.toFixed(2)}`
+    )
     .join(" ");
 };
+
+const buildAreaPath = (values: number[]) => {
+  const coordinates = buildCoordinates(values);
+
+  if (coordinates.length === 0) {
+    return "";
+  }
+
+  const firstPoint = coordinates[0];
+  const lastPoint = coordinates[coordinates.length - 1];
+  const linePath = coordinates
+    .map((coordinate, index) =>
+      `${index === 0 ? "M" : "L"} ${coordinate.x.toFixed(2)} ${coordinate.y.toFixed(2)}`
+    )
+    .join(" ");
+
+  return `${linePath} L ${lastPoint.x.toFixed(2)} 100 L ${firstPoint.x.toFixed(2)} 100 Z`;
+};
+
+const formatNullablePercent = (value: number | null) => (value === null ? "N/A" : formatPercent(value));
+const formatNullablePriceDelta = (value: number | null) =>
+  value === null ? "N/A" : `${value >= 0 ? "+" : "-"}${formatPrice(Math.abs(value))}`;
 
 export function HistoryChart({
   history,
   loading,
   metric,
   onMetricChange,
-  token
+  token,
+  trendSummary
 }: HistoryChartProps) {
   const values = history.map((point) => point[metric]);
   const meta = METRIC_META[metric];
@@ -64,6 +130,9 @@ export function HistoryChart({
   const latestValue = values.length > 0 ? values[values.length - 1] : 0;
   const highestValue = values.length > 0 ? Math.max(...values) : 0;
   const lowestValue = values.length > 0 ? Math.min(...values) : 0;
+  const linePath = buildLinePath(values);
+  const areaPath = buildAreaPath(values);
+  const momentumMeta = trendSummary ? MOMENTUM_META[trendSummary.momentumLabel] : MOMENTUM_META.NO_DATA;
 
   return (
     <section className="panel">
@@ -105,17 +174,83 @@ export function HistoryChart({
         </div>
       ) : (
         <>
+          <div className={`momentum-banner momentum-banner--${momentumMeta.tone}`}>
+            <strong>{momentumMeta.copy}</strong>
+            <span className="muted-copy">Updated {formatDateTime(trendSummary?.generatedAt ?? null)}</span>
+          </div>
+
+          <div className="trend-grid">
+            {trendSummary?.windows.map((window) => (
+              <article
+                className="trend-card"
+                key={window.label}
+              >
+                <div className="trend-card__top">
+                  <span className="eyebrow">{window.label}</span>
+                  <span
+                    className={`trend-pill ${
+                      (window.priceChangePercent ?? 0) > 0
+                        ? "trend-pill--up"
+                        : (window.priceChangePercent ?? 0) < 0
+                          ? "trend-pill--down"
+                          : ""
+                    }`}
+                  >
+                    {formatNullablePercent(window.priceChangePercent)}
+                  </span>
+                </div>
+                <strong>{formatNullablePriceDelta(window.priceChangeUsd)}</strong>
+                <div className="trend-card__meta">
+                  <span>1h vol {formatNullablePercent(window.volume1hChangePercent)}</span>
+                  <span>Score {window.scoreChange === null ? "N/A" : `${window.scoreChange >= 0 ? "+" : ""}${window.scoreChange}`}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+
           <div className="history-chart">
             <svg
               className="history-chart__svg"
               preserveAspectRatio="none"
               viewBox="0 0 100 100"
             >
-              <polyline
+              <defs>
+                <linearGradient
+                  id="historyAreaGradient"
+                  x1="0"
+                  x2="0"
+                  y1="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="rgba(255, 214, 110, 0.42)"
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="rgba(255, 214, 110, 0.04)"
+                  />
+                </linearGradient>
+              </defs>
+
+              {[20, 40, 60, 80].map((line) => (
+                <line
+                  className="history-chart__grid"
+                  key={line}
+                  x1="0"
+                  x2="100"
+                  y1={line}
+                  y2={line}
+                />
+              ))}
+
+              <path
+                className="history-chart__area"
+                d={areaPath}
+              />
+              <path
                 className="history-chart__line"
-                fill="none"
-                points={buildPolyline(values)}
-                strokeWidth="3"
+                d={linePath}
               />
             </svg>
           </div>
