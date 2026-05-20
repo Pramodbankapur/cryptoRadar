@@ -20,9 +20,9 @@ import { formatCompactNumber, formatDateTime } from "./utils/format";
 
 const REFRESH_INTERVAL_MS = 60_000;
 const DESKTOP_TOKEN_PAGE_SIZE = 20;
-const MOBILE_TOKEN_PAGE_SIZE = 8;
+const MOBILE_TOKEN_PAGE_SIZE = 6;
 const DESKTOP_ALERT_PAGE_SIZE = 6;
-const MOBILE_ALERT_PAGE_SIZE = 4;
+const MOBILE_ALERT_PAGE_SIZE = 3;
 
 const DEFAULT_FILTERS: FilterValues = {
   boostedOnly: false,
@@ -51,9 +51,6 @@ export default function App() {
   const [filters, setFilters] = useState<FilterValues>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
   const [alertPage, setAlertPage] = useState(1);
-  const [mobilePanel, setMobilePanel] = useState<"alerts" | "discovery" | "trend" | "watchlist">(
-    "discovery"
-  );
   const [tokensResponse, setTokensResponse] = useState<TokenListResponse | null>(null);
   const [alertsResponse, setAlertsResponse] = useState<PaginatedResponse<{
     _id: string;
@@ -89,6 +86,7 @@ export default function App() {
   const [favoriteBusyKey, setFavoriteBusyKey] = useState<string | null>(null);
   const [watchlistSavingId, setWatchlistSavingId] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const deferredSearchQuery = useDeferredValue(filters.searchQuery);
 
   const triggerRefresh = () => {
@@ -126,12 +124,40 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (isMobileViewport) {
+      return;
+    }
+
     const intervalId = window.setInterval(() => {
       triggerRefresh();
     }, REFRESH_INTERVAL_MS);
 
     return () => {
       window.clearInterval(intervalId);
+    };
+  }, [isMobileViewport]);
+
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      setRuntimeError(event.message || "A browser rendering error occurred.");
+    };
+
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason =
+        event.reason instanceof Error
+          ? event.reason.message
+          : typeof event.reason === "string"
+            ? event.reason
+            : "A browser rendering error occurred.";
+      setRuntimeError(reason);
+    };
+
+    window.addEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleRejection);
+
+    return () => {
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("unhandledrejection", handleRejection);
     };
   }, []);
 
@@ -253,24 +279,18 @@ export default function App() {
   }, [refreshTick]);
 
   useEffect(() => {
-    if (!selectedTokenRef && tokensResponse?.items[0]) {
+    if (!selectedTokenRef && tokensResponse?.items[0] && !isMobileViewport) {
       setSelectedTokenRef({
         chainId: tokensResponse.items[0].chainId,
         tokenAddress: tokensResponse.items[0].tokenAddress
       });
     }
-  }, [selectedTokenRef, tokensResponse]);
+  }, [isMobileViewport, selectedTokenRef, tokensResponse]);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadHistory = async () => {
-      if (isMobileViewport && mobilePanel !== "trend") {
-        setHistoryResponse(null);
-        setHistoryLoading(false);
-        return;
-      }
-
       if (!selectedTokenRef) {
         setHistoryResponse(null);
         return;
@@ -304,7 +324,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [isMobileViewport, mobilePanel, refreshTick, selectedTokenRef]);
+  }, [refreshTick, selectedTokenRef]);
 
   const selectedToken = useMemo(() => {
     if (!selectedTokenRef) {
@@ -346,10 +366,6 @@ export default function App() {
       chainId: token.chainId,
       tokenAddress: token.tokenAddress
     });
-
-    if (isMobileViewport) {
-      setMobilePanel("trend");
-    }
   };
 
   const handleToggleFavorite = async (token: TokenRecord) => {
@@ -417,10 +433,10 @@ export default function App() {
     ? `${selectedToken.chainId}:${selectedToken.tokenAddress}`
     : null;
   const showDesktopDiscovery = !isMobileViewport;
-  const showMobileDiscovery = isMobileViewport && mobilePanel === "discovery";
-  const showTrendPanel = !isMobileViewport || mobilePanel === "trend";
-  const showWatchlistPanel = !isMobileViewport || mobilePanel === "watchlist";
-  const showAlertsPanel = !isMobileViewport || mobilePanel === "alerts";
+  const showMobileDiscovery = isMobileViewport;
+  const showTrendPanel = !isMobileViewport || selectedToken !== null;
+  const showWatchlistPanel = !isMobileViewport || watchlistEntries.length > 0;
+  const showAlertsPanel = true;
 
   return (
     <div className="app-shell">
@@ -456,6 +472,7 @@ export default function App() {
           </div>
         </section>
 
+        {!isMobileViewport ? (
         <section className="stats-grid">
           <article className="stat-card panel">
             <span className="eyebrow">Tracked tokens</span>
@@ -474,27 +491,6 @@ export default function App() {
             <strong>{formatCompactNumber(availableChains.length)}</strong>
           </article>
         </section>
-
-        {isMobileViewport ? (
-          <section className="panel mobile-panel-switcher">
-            <div className="segmented-control mobile-segmented-control">
-              {([
-                ["discovery", "Discovery"],
-                ["trend", "Trend"],
-                ["watchlist", "Watchlist"],
-                ["alerts", "Alerts"]
-              ] as const).map(([panelKey, label]) => (
-                <button
-                  className={`segment-button ${mobilePanel === panelKey ? "segment-button--active" : ""}`}
-                  key={panelKey}
-                  onClick={() => setMobilePanel(panelKey)}
-                  type="button"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </section>
         ) : null}
 
         <section className="content-grid">
@@ -521,6 +517,7 @@ export default function App() {
                 values={filters}
               />
 
+              {runtimeError ? <div className="error-banner">{runtimeError}</div> : null}
               {error ? <div className="error-banner">{error}</div> : null}
 
               {loadingTokens ? (
@@ -579,6 +576,7 @@ export default function App() {
           <div className="content-grid__side">
             {showTrendPanel ? (
               <HistoryChart
+                compact={isMobileViewport}
                 history={historyItems}
                 loading={historyLoading}
                 metric={historyMetric}

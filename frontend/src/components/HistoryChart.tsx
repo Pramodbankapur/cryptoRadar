@@ -5,6 +5,7 @@ import { ScoreBadge } from "./ScoreBadge";
 type HistoryMetric = "priceUsd" | "score" | "volume24h";
 
 interface HistoryChartProps {
+  compact?: boolean;
   history: TokenHistoryPoint[];
   loading: boolean;
   metric: HistoryMetric;
@@ -119,6 +120,7 @@ const formatNullablePriceDelta = (value: number | null) =>
   value === null ? "N/A" : `${value >= 0 ? "+" : "-"}${formatPrice(Math.abs(value))}`;
 
 export function HistoryChart({
+  compact = false,
   history,
   loading,
   metric,
@@ -148,18 +150,20 @@ export function HistoryChart({
         {token ? <ScoreBadge score={token.score} /> : null}
       </div>
 
-      <div className="segmented-control">
-        {(["score", "priceUsd", "volume24h"] as HistoryMetric[]).map((option) => (
-          <button
-            className={`segment-button ${metric === option ? "segment-button--active" : ""}`}
-            key={option}
-            onClick={() => onMetricChange(option)}
-            type="button"
-          >
-            {METRIC_META[option].label}
-          </button>
-        ))}
-      </div>
+      {!compact ? (
+        <div className="segmented-control">
+          {(["score", "priceUsd", "volume24h"] as HistoryMetric[]).map((option) => (
+            <button
+              className={`segment-button ${metric === option ? "segment-button--active" : ""}`}
+              key={option}
+              onClick={() => onMetricChange(option)}
+              type="button"
+            >
+              {METRIC_META[option].label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {!token ? (
         <div className="empty-state">
@@ -212,33 +216,35 @@ export function HistoryChart({
             ))}
           </div>
 
-          <div className="history-chart">
-            <svg
-              className="history-chart__svg"
-              preserveAspectRatio="none"
-              viewBox="0 0 100 100"
-            >
-              {[20, 40, 60, 80].map((line) => (
-                <line
-                  className="history-chart__grid"
-                  key={line}
-                  x1="0"
-                  x2="100"
-                  y1={line}
-                  y2={line}
-                />
-              ))}
+          {!compact ? (
+            <div className="history-chart">
+              <svg
+                className="history-chart__svg"
+                preserveAspectRatio="none"
+                viewBox="0 0 100 100"
+              >
+                {[20, 40, 60, 80].map((line) => (
+                  <line
+                    className="history-chart__grid"
+                    key={line}
+                    x1="0"
+                    x2="100"
+                    y1={line}
+                    y2={line}
+                  />
+                ))}
 
-              <path
-                className="history-chart__area"
-                d={areaPath}
-              />
-              <path
-                className="history-chart__line"
-                d={linePath}
-              />
-            </svg>
-          </div>
+                <path
+                  className="history-chart__area"
+                  d={areaPath}
+                />
+                <path
+                  className="history-chart__line"
+                  d={linePath}
+                />
+              </svg>
+            </div>
+          ) : null}
 
           <div className="history-stats">
             <div>
