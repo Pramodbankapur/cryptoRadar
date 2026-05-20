@@ -2,6 +2,8 @@ import type { TokenRecord } from "../types";
 import { formatCurrency, formatPercent, formatPrice, formatRelativeAge } from "../utils/format";
 import { ScoreBadge } from "./ScoreBadge";
 
+const formatSignal = (value: string) => value.split("_").join(" ");
+
 interface TokenTableProps {
   onSelectToken: (token: TokenRecord) => void;
   onToggleFavorite: (token: TokenRecord) => void;
@@ -65,6 +67,19 @@ export function TokenTable({
                     <span className="token-symbol">{token.symbol}</span>
                     <span className="token-name">{token.name}</span>
                     <span className="token-meta">{formatRelativeAge(token.pairCreatedAt)}</span>
+                    <div className="meta-chip-row">
+                      <span className={`meta-chip meta-chip--${token.riskLevel.toLowerCase()}`}>
+                        {token.riskLevel}
+                      </span>
+                      <span className="meta-chip">{formatSignal(token.entryBias)}</span>
+                      <span className="meta-chip">{formatSignal(token.flowState)}</span>
+                    </div>
+                    <span className="token-meta">
+                      5m {formatPercent(token.priceChange5m)} • 1h {formatPercent(token.priceChange1h)} •
+                      Flow {token.txns5mBuys + token.txns5mSells > 0
+                        ? `${Math.round((token.txns5mBuys / (token.txns5mBuys + token.txns5mSells)) * 100)}% buys`
+                        : "No recent flow"}
+                    </span>
                     {token.watchlistNote ? (
                       <span className="token-note">Note: {token.watchlistNote}</span>
                     ) : null}

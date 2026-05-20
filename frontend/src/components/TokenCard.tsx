@@ -8,6 +8,8 @@ import {
 } from "../utils/format";
 import { ScoreBadge } from "./ScoreBadge";
 
+const formatSignal = (value: string) => value.split("_").join(" ");
+
 interface TokenCardProps {
   onSelectToken: (token: TokenRecord) => void;
   onToggleFavorite: (token: TokenRecord) => void;
@@ -52,6 +54,20 @@ export function TokenCard({
 
       <div className="token-card__grid">
         <div>
+          <span className="eyebrow">Setup</span>
+          <strong>{token.riskLevel}</strong>
+          <span className="muted-copy">{formatSignal(token.entryBias)}</span>
+        </div>
+        <div>
+          <span className="eyebrow">Flow</span>
+          <strong>{formatSignal(token.flowState)}</strong>
+          <span className="muted-copy">
+            {token.txns5mBuys + token.txns5mSells > 0
+              ? `${Math.round((token.txns5mBuys / (token.txns5mBuys + token.txns5mSells)) * 100)}% buys in 5m`
+              : "No recent flow"}
+          </span>
+        </div>
+        <div>
           <span className="eyebrow">Chain</span>
           <strong>{token.chainId}</strong>
         </div>
@@ -72,6 +88,15 @@ export function TokenCard({
           <strong className={token.priceChange24h >= 0 ? "positive" : "negative"}>
             {formatPercent(token.priceChange24h)}
           </strong>
+        </div>
+        <div>
+          <span className="eyebrow">5m / 1h</span>
+          <strong className={token.priceChange5m >= 0 ? "positive" : "negative"}>
+            {formatPercent(token.priceChange5m)}
+          </strong>
+          <span className={`muted-copy ${token.priceChange1h >= 0 ? "positive" : "negative"}`}>
+            {formatPercent(token.priceChange1h)}
+          </span>
         </div>
         <div>
           <span className="eyebrow">Age</span>

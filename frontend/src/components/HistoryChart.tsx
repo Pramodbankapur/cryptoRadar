@@ -118,6 +118,7 @@ const buildAreaPath = (values: number[]) => {
 const formatNullablePercent = (value: number | null) => (value === null ? "N/A" : formatPercent(value));
 const formatNullablePriceDelta = (value: number | null) =>
   value === null ? "N/A" : `${value >= 0 ? "+" : "-"}${formatPrice(Math.abs(value))}`;
+const formatWindowSignal = (value: string) => value.split("_").join(" ");
 
 export function HistoryChart({
   compact = false,
@@ -139,6 +140,7 @@ export function HistoryChart({
   const linePath = buildLinePath(values);
   const areaPath = buildAreaPath(values);
   const momentumMeta = trendSummary ? MOMENTUM_META[trendSummary.momentumLabel] : MOMENTUM_META.NO_DATA;
+  const control = trendSummary?.control ?? null;
 
   return (
     <section className="panel">
@@ -187,6 +189,42 @@ export function HistoryChart({
             <span className="muted-copy">Updated {formatDateTime(trendSummary?.generatedAt ?? null)}</span>
           </div>
 
+          {control ? (
+            <div className="control-grid">
+              <article className="trend-card">
+                <div className="trend-card__top">
+                  <span className="eyebrow">Risk control</span>
+                  <span className={`meta-chip meta-chip--${control.controlTier.toLowerCase()}`}>
+                    {control.controlTier}
+                  </span>
+                </div>
+                <strong>{formatWindowSignal(control.entrySignal)}</strong>
+                <div className="trend-card__meta">
+                  <span>{formatWindowSignal(control.flowState)}</span>
+                  <span>
+                    24h peak drawdown {formatNullablePercent(control.priceDrawdownFrom24hHighPercent)}
+                  </span>
+                </div>
+              </article>
+
+              <article className="trend-card">
+                <div className="trend-card__top">
+                  <span className="eyebrow">Order flow</span>
+                  <span className="trend-pill">{formatWindowSignal(control.flowState)}</span>
+                </div>
+                <strong>
+                  5m buys {control.buyShare5m === null ? "N/A" : `${control.buyShare5m.toFixed(0)}%`}
+                </strong>
+                <div className="trend-card__meta">
+                  <span>1h buys {control.buyShare1h === null ? "N/A" : `${control.buyShare1h.toFixed(0)}%`}</span>
+                  <span>
+                    Vol/liquidity {control.volumeToLiquidityRatio === null ? "N/A" : control.volumeToLiquidityRatio.toFixed(2)}x
+                  </span>
+                </div>
+              </article>
+            </div>
+          ) : null}
+
           <div className="trend-grid">
             {trendSummary?.windows.map((window) => (
               <article
@@ -215,6 +253,19 @@ export function HistoryChart({
               </article>
             ))}
           </div>
+
+          {control && control.warnings.length > 0 ? (
+            <div className="flag-list trend-warning-list">
+              {control.warnings.map((warning) => (
+                <span
+                  className="flag-chip"
+                  key={warning}
+                >
+                  {formatWindowSignal(warning)}
+                </span>
+              ))}
+            </div>
+          ) : null}
 
           {!compact ? (
             <div className="history-chart">

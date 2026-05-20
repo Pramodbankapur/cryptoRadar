@@ -24,17 +24,33 @@ export interface TokenRecord {
   pairCreatedAt: string | null;
   priceChange24h: number;
   priceChange6h: number;
+  priceChange1h: number;
+  priceChange5m: number;
   priceUsd: number;
+  flowState: "BALANCED" | "BUYERS_IN_CONTROL" | "SELLERS_IN_CONTROL";
+  entryBias:
+    | "AVOID"
+    | "NO_CHASE"
+    | "WAIT_CONFIRMATION"
+    | "WAIT_RETEST"
+    | "CONTROLLED_BREAKOUT";
+  riskLevel: "CONTROLLED" | "WATCH" | "CAUTION" | "AVOID";
   riskFlags: string[];
   score: number;
   socials: LinkItem[];
   symbol: string;
   tokenAddress: string;
   totalBoostAmount: number;
+  txns1hBuys: number;
+  txns1hSells: number;
+  txns5mBuys: number;
+  txns5mSells: number;
   updatedAt: string;
+  volume5m: number;
   volume1h: number;
   volume24h: number;
   volume6h: number;
+  volumeToLiquidityRatio: number;
   watchlistId: string | null;
   watchlistNote: string;
   watchlistTags: string[];
@@ -86,13 +102,20 @@ export interface TokenHistoryPoint {
   name: string;
   pairAddress: string;
   priceChange24h: number;
+  priceChange1h: number;
+  priceChange5m: number;
   priceUsd: number;
   riskFlags: string[];
   score: number;
   snapshotAt: string;
   symbol: string;
   tokenAddress: string;
+  txns1hBuys: number;
+  txns1hSells: number;
+  txns5mBuys: number;
+  txns5mSells: number;
   updatedAt: string;
+  volume5m: number;
   volume1h: number;
   volume24h: number;
   volume6h: number;
@@ -111,6 +134,21 @@ export interface TokenHistoryWindow {
 }
 
 export interface TokenTrendSummary {
+  control: {
+    buyShare1h: number | null;
+    buyShare5m: number | null;
+    controlTier: "CONTROLLED" | "WATCH" | "CAUTION" | "AVOID";
+    entrySignal:
+      | "AVOID"
+      | "NO_CHASE"
+      | "WAIT_CONFIRMATION"
+      | "WAIT_RETEST"
+      | "CONTROLLED_BREAKOUT";
+    flowState: "BALANCED" | "BUYERS_IN_CONTROL" | "SELLERS_IN_CONTROL";
+    priceDrawdownFrom24hHighPercent: number | null;
+    volumeToLiquidityRatio: number | null;
+    warnings: string[];
+  } | null;
   generatedAt: string;
   momentumLabel: "STILL_MOVING" | "COOLING" | "REVERSING" | "MIXED" | "NO_DATA";
   windows: TokenHistoryWindow[];

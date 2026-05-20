@@ -389,6 +389,48 @@ a {
   font-size: 0.9rem;
 }
 
+.meta-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.meta-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: var(--copy);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  padding: 5px 9px;
+  text-transform: uppercase;
+}
+
+.meta-chip--controlled {
+  background: rgba(111, 228, 167, 0.12);
+  border-color: rgba(111, 228, 167, 0.2);
+  color: var(--positive);
+}
+
+.meta-chip--watch {
+  background: rgba(130, 198, 255, 0.12);
+  border-color: rgba(130, 198, 255, 0.2);
+  color: var(--strong);
+}
+
+.meta-chip--caution {
+  background: rgba(255, 214, 110, 0.12);
+  border-color: rgba(255, 214, 110, 0.22);
+  color: var(--excellent);
+}
+
+.meta-chip--avoid {
+  background: rgba(255, 143, 115, 0.1);
+  border-color: rgba(255, 143, 115, 0.2);
+  color: #ffb39d;
+}
+
 .token-note {
   color: #d5e5f7;
   font-size: 0.84rem;
@@ -676,6 +718,13 @@ a {
   margin-bottom: 16px;
 }
 
+.control-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
 .trend-card {
   background: rgba(8, 15, 24, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -724,6 +773,10 @@ a {
   background: rgba(255, 143, 115, 0.1);
   border-color: rgba(255, 143, 115, 0.18);
   color: #ffb39d;
+}
+
+.trend-warning-list {
+  margin-bottom: 16px;
 }
 
 .watchlist-list {
@@ -822,7 +875,8 @@ a {
   .filters-grid,
   .content-grid,
   .history-stats,
-  .trend-grid {
+  .trend-grid,
+  .control-grid {
     grid-template-columns: 1fr;
   }
 

@@ -261,15 +261,29 @@ const processCandidate = async (candidate: CandidateToken, snapshotAt: Date) => 
   const volume24h = parseNumberish(pair.volume?.h24);
   const volume6h = parseNumberish(pair.volume?.h6);
   const volume1h = parseNumberish(pair.volume?.h1);
+  const volume5m = parseNumberish(pair.volume?.m5);
   const priceChange24h = parseNumberish(pair.priceChange?.h24);
   const priceChange6h = parseNumberish(pair.priceChange?.h6);
+  const priceChange1h = parseNumberish(pair.priceChange?.h1);
+  const priceChange5m = parseNumberish(pair.priceChange?.m5);
+  const txns5mBuys = parseNumberish(pair.txns?.m5?.buys);
+  const txns5mSells = parseNumberish(pair.txns?.m5?.sells);
+  const txns1hBuys = parseNumberish(pair.txns?.h1?.buys);
+  const txns1hSells = parseNumberish(pair.txns?.h1?.sells);
   const pairCreatedAt = pair.pairCreatedAt ? new Date(pair.pairCreatedAt) : null;
-  const { riskFlags, score } = scoreToken({
+  const { entryBias, flowState, riskFlags, riskLevel, score, volumeToLiquidityRatio } = scoreToken({
     boosted,
     liquidityUsd,
     pairCreatedAt,
+    priceChange1h,
+    priceChange5m,
     priceChange24h,
     socials,
+    txns1hBuys,
+    txns1hSells,
+    txns5mBuys,
+    txns5mSells,
+    volume5m,
     volume1h,
     volume24h,
     volume6h,
@@ -286,7 +300,9 @@ const processCandidate = async (candidate: CandidateToken, snapshotAt: Date) => 
     description: candidate.description,
     dexscreenerUrl,
     dexId: pair.dexId ?? "",
+    entryBias,
     fdv: pair.fdv ?? null,
+    flowState,
     imageUrl: pair.info?.imageUrl ?? candidate.imageUrl,
     lastScannedAt: new Date(),
     liquidityUsd,
@@ -296,16 +312,25 @@ const processCandidate = async (candidate: CandidateToken, snapshotAt: Date) => 
     pairCreatedAt,
     priceChange24h,
     priceChange6h,
+    priceChange1h,
+    priceChange5m,
     priceUsd,
     riskFlags,
+    riskLevel,
     score,
     socials,
     symbol,
     tokenAddress: candidate.tokenAddress,
     totalBoostAmount: Math.max(candidate.totalBoostAmount, parseNumberish(pair.boosts?.active)),
+    txns1hBuys,
+    txns1hSells,
+    txns5mBuys,
+    txns5mSells,
+    volume5m,
     volume1h,
     volume24h,
     volume6h,
+    volumeToLiquidityRatio,
     websites
   };
 
@@ -329,12 +354,19 @@ const processCandidate = async (candidate: CandidateToken, snapshotAt: Date) => 
     name: tokenName,
     pairAddress: pair.pairAddress ?? "",
     priceChange24h,
+    priceChange1h,
+    priceChange5m,
     priceUsd,
     riskFlags,
     score,
     snapshotAt,
     symbol,
     tokenAddress: candidate.tokenAddress,
+    txns1hBuys,
+    txns1hSells,
+    txns5mBuys,
+    txns5mSells,
+    volume5m,
     volume1h,
     volume24h,
     volume6h

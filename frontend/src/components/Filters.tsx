@@ -26,7 +26,10 @@ const RISK_FLAG_OPTIONS = [
   "POSSIBLE_PUMP",
   "LOW_INFO",
   "VERY_NEW",
-  "EXIT_LIQUIDITY_RISK"
+  "EXIT_LIQUIDITY_RISK",
+  "CHASE_RISK",
+  "DUMP_RISK",
+  "SELL_PRESSURE"
 ] as const;
 
 export function Filters({ chains, onChange, onReset, values }: FiltersProps) {
