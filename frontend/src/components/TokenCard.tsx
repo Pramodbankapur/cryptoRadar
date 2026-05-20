@@ -9,6 +9,9 @@ import {
 import { ScoreBadge } from "./ScoreBadge";
 
 const formatSignal = (value: string) => value.split("_").join(" ");
+const getRiskLevel = (value: string | undefined) => value ?? "WATCH";
+const getEntryBias = (value: string | undefined) => value ?? "WAIT_CONFIRMATION";
+const getFlowState = (value: string | undefined) => value ?? "BALANCED";
 
 interface TokenCardProps {
   onSelectToken: (token: TokenRecord) => void;
@@ -26,6 +29,11 @@ export function TokenCard({
   token
 }: TokenCardProps) {
   const tokenKey = `${token.chainId}:${token.tokenAddress}`;
+  const riskLevel = getRiskLevel(token.riskLevel);
+  const entryBias = getEntryBias(token.entryBias);
+  const flowState = getFlowState(token.flowState);
+  const txns5mBuys = token.txns5mBuys ?? 0;
+  const txns5mSells = token.txns5mSells ?? 0;
 
   return (
     <article
@@ -55,15 +63,15 @@ export function TokenCard({
       <div className="token-card__grid">
         <div>
           <span className="eyebrow">Setup</span>
-          <strong>{token.riskLevel}</strong>
-          <span className="muted-copy">{formatSignal(token.entryBias)}</span>
+          <strong>{riskLevel}</strong>
+          <span className="muted-copy">{formatSignal(entryBias)}</span>
         </div>
         <div>
           <span className="eyebrow">Flow</span>
-          <strong>{formatSignal(token.flowState)}</strong>
+          <strong>{formatSignal(flowState)}</strong>
           <span className="muted-copy">
-            {token.txns5mBuys + token.txns5mSells > 0
-              ? `${Math.round((token.txns5mBuys / (token.txns5mBuys + token.txns5mSells)) * 100)}% buys in 5m`
+            {txns5mBuys + txns5mSells > 0
+              ? `${Math.round((txns5mBuys / (txns5mBuys + txns5mSells)) * 100)}% buys in 5m`
               : "No recent flow"}
           </span>
         </div>

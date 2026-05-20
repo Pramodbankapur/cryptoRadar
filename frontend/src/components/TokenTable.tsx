@@ -3,6 +3,9 @@ import { formatCurrency, formatPercent, formatPrice, formatRelativeAge } from ".
 import { ScoreBadge } from "./ScoreBadge";
 
 const formatSignal = (value: string) => value.split("_").join(" ");
+const getRiskLevel = (value: string | undefined) => value ?? "WATCH";
+const getEntryBias = (value: string | undefined) => value ?? "WAIT_CONFIRMATION";
+const getFlowState = (value: string | undefined) => value ?? "BALANCED";
 
 interface TokenTableProps {
   onSelectToken: (token: TokenRecord) => void;
@@ -39,6 +42,11 @@ export function TokenTable({
         <tbody>
           {tokens.map((token) => {
             const tokenKey = `${token.chainId}:${token.tokenAddress}`;
+            const riskLevel = getRiskLevel(token.riskLevel);
+            const entryBias = getEntryBias(token.entryBias);
+            const flowState = getFlowState(token.flowState);
+            const txns5mBuys = token.txns5mBuys ?? 0;
+            const txns5mSells = token.txns5mSells ?? 0;
 
             return (
               <tr
@@ -68,16 +76,16 @@ export function TokenTable({
                     <span className="token-name">{token.name}</span>
                     <span className="token-meta">{formatRelativeAge(token.pairCreatedAt)}</span>
                     <div className="meta-chip-row">
-                      <span className={`meta-chip meta-chip--${token.riskLevel.toLowerCase()}`}>
-                        {token.riskLevel}
+                      <span className={`meta-chip meta-chip--${riskLevel.toLowerCase()}`}>
+                        {riskLevel}
                       </span>
-                      <span className="meta-chip">{formatSignal(token.entryBias)}</span>
-                      <span className="meta-chip">{formatSignal(token.flowState)}</span>
+                      <span className="meta-chip">{formatSignal(entryBias)}</span>
+                      <span className="meta-chip">{formatSignal(flowState)}</span>
                     </div>
                     <span className="token-meta">
                       5m {formatPercent(token.priceChange5m)} • 1h {formatPercent(token.priceChange1h)} •
-                      Flow {token.txns5mBuys + token.txns5mSells > 0
-                        ? `${Math.round((token.txns5mBuys / (token.txns5mBuys + token.txns5mSells)) * 100)}% buys`
+                      Flow {txns5mBuys + txns5mSells > 0
+                        ? `${Math.round((txns5mBuys / (txns5mBuys + txns5mSells)) * 100)}% buys`
                         : "No recent flow"}
                     </span>
                     {token.watchlistNote ? (

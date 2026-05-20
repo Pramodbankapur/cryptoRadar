@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 
 import { TokenModel } from "../models/Token.js";
+import { normalizeTokenRecord } from "../utils/normalizeTokenRecord.js";
 import { WatchlistModel } from "../models/Watchlist.js";
 
 export const watchlistRouter = Router();
@@ -39,7 +40,9 @@ watchlistRouter.get("/", async (_req, res, next) => {
     res.json(
       entries.map((entry) => ({
         ...entry,
-        token: tokenMap.get(`${entry.chainId}:${entry.tokenAddress}`) ?? null
+        token: tokenMap.has(`${entry.chainId}:${entry.tokenAddress}`)
+          ? normalizeTokenRecord(tokenMap.get(`${entry.chainId}:${entry.tokenAddress}`)!)
+          : null
       }))
     );
   } catch (error) {
@@ -93,10 +96,10 @@ watchlistRouter.post("/", async (req, res, next) => {
 
     return res.status(201).json({
       ...entry,
-      token: {
+      token: normalizeTokenRecord({
         ...token,
         isFavorite: true
-      }
+      })
     });
   } catch (error) {
     next(error);
@@ -129,7 +132,7 @@ watchlistRouter.patch("/:watchlistId", async (req, res, next) => {
 
     return res.json({
       ...entry,
-      token
+      token: token ? normalizeTokenRecord(token) : null
     });
   } catch (error) {
     next(error);

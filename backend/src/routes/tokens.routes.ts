@@ -4,6 +4,7 @@ import type { FilterQuery } from "mongoose";
 import { env } from "../config/env.js";
 import { TokenScanHistoryModel } from "../models/TokenScanHistory.js";
 import { TokenModel } from "../models/Token.js";
+import { normalizeTokenRecord } from "../utils/normalizeTokenRecord.js";
 import { WatchlistModel } from "../models/Watchlist.js";
 
 export const tokensRouter = Router();
@@ -46,6 +47,19 @@ const buildTokenResponse = async <
     _id: { toString(): string } | string;
     chainId: string;
     tokenAddress: string;
+    entryBias?: string | null;
+    flowState?: string | null;
+    isFavorite?: boolean | null;
+    priceChange1h?: number | null;
+    priceChange5m?: number | null;
+    riskFlags?: string[] | null;
+    riskLevel?: string | null;
+    txns1hBuys?: number | null;
+    txns1hSells?: number | null;
+    txns5mBuys?: number | null;
+    txns5mSells?: number | null;
+    volume5m?: number | null;
+    volumeToLiquidityRatio?: number | null;
   }
 >(tokens: T[]) => {
   if (tokens.length === 0) {
@@ -71,7 +85,7 @@ const buildTokenResponse = async <
   );
 
   return tokens.map((token) => ({
-    ...token,
+    ...normalizeTokenRecord(token),
     ...(watchlistMap.get(`${token.chainId}:${token.tokenAddress}`) ?? {
       watchlistId: null,
       watchlistNote: "",
